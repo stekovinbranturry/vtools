@@ -1,5 +1,13 @@
 # vtools
 
+## 0.0.3
+
+### Patch Changes
+
+- 97ba18b: Re-enable npm provenance for published packages.
+- Updated dependencies [97ba18b]
+  - @v-kit/core@0.0.3
+
 ## 0.0.2
 
 ### Patch Changes
