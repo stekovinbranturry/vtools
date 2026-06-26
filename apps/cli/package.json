@@ -1,6 +1,6 @@
 {
   "name": "vtools",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Ink-based terminal app for downloading VS Code extensions (.vsix). Binary: vtools.",
   "license": "MIT",
   "repository": {
@@ -22,7 +22,10 @@
     "test": "ava",
     "prepublishOnly": "pnpm run build"
   },
-  "files": ["dist", "readme.md"],
+  "files": [
+    "dist",
+    "readme.md"
+  ],
   "dependencies": {
     "@inquirer/prompts": "^8.5.2",
     "chalk": "^5.6.2",
@@ -53,8 +56,13 @@
     "typescript": "^5.0.3"
   },
   "ava": {
-    "extensions": {"ts": "module", "tsx": "module"},
-    "nodeArguments": ["--loader=ts-node/esm"]
+    "extensions": {
+      "ts": "module",
+      "tsx": "module"
+    },
+    "nodeArguments": [
+      "--loader=ts-node/esm"
+    ]
   },
   "prettier": "@vdemedes/prettier-config"
 }
