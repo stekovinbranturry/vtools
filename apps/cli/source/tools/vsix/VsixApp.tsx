@@ -4,6 +4,7 @@ import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
 import InstallPrompt from './InstallPrompt.js';
 import {type DownloadResult, runVsixDownload} from './download.js';
+import KeyHints from '../../components/KeyHints.js';
 
 type Status = 'idle' | 'working' | 'done' | 'error';
 
@@ -124,7 +125,12 @@ export default function VsixApp({onBack}: Props) {
 						<Spinner type="dots" /> {message || '处理中…'}
 					</Text>
 				) : (
-					<Text dimColor>Enter 安装 · Esc 返回</Text>
+					<KeyHints
+						items={[
+							{key: '↵', label: '安装'},
+							{key: 'Esc', label: '返回'},
+						]}
+					/>
 				)}
 			</Box>
 

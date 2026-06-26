@@ -12,6 +12,8 @@ import {
 	printVsixSuccess,
 } from './tools/vsix/print-summary.js';
 import VsixApp from './tools/vsix/VsixApp.js';
+import SyncApp from './tools/sync/SyncApp.js';
+import {checkForUpdates} from './update-check.js';
 
 const cli = meow(
 	`
@@ -19,6 +21,7 @@ const cli = meow(
 	  $ vkit
 	  $ vkit vsix <extension>
 	  $ vkit vsix
+	  $ vkit vsix-sync
 
 	Options
 	  --version  Extension version (default: latest from Marketplace)
@@ -28,6 +31,7 @@ const cli = meow(
 	  $ vkit
 	  $ vkit vsix ms-python.python
 	  $ vkit vsix ms-python.python --version 2024.20.0 --out ./extensions/
+	  $ vkit vsix-sync
 `,
 	{
 		importMeta: import.meta,
@@ -41,6 +45,8 @@ const cli = meow(
 		},
 	},
 );
+
+checkForUpdates();
 
 const [command, extension] = cli.input;
 
@@ -94,6 +100,14 @@ if (command === 'vsix') {
 			/>,
 		);
 	}
+} else if (command === 'vsix-sync') {
+	render(
+		<SyncApp
+			onBack={() => {
+				process.exit(0);
+			}}
+		/>,
+	);
 } else if (command) {
 	console.error(`Unknown command: ${command}`);
 	process.exit(1);

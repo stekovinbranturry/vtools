@@ -1,8 +1,27 @@
 import React, {useState} from 'react';
 import {Box, Text, useApp, useInput} from 'ink';
 import SelectInput from 'ink-select-input';
+import Gradient from 'ink-gradient';
+import BigText from 'ink-big-text';
 import {tools} from './registry.js';
 import VsixApp from './vsix/VsixApp.js';
+import SyncApp from './sync/SyncApp.js';
+import KeyHints from '../components/KeyHints.js';
+
+function Indicator({isSelected}: {isSelected?: boolean}) {
+	return <Text color="cyan">{isSelected ? '❯' : ' '} </Text>;
+}
+
+function Item({isSelected, label}: {isSelected?: boolean; label: string}) {
+	return (
+		<Text>
+			<Text color={isSelected ? 'cyan' : 'gray'}>◆ </Text>
+			<Text color={isSelected ? 'cyan' : undefined} bold={isSelected}>
+				{label}
+			</Text>
+		</Text>
+	);
+}
 
 export default function Dashboard() {
 	const {exit} = useApp();
@@ -22,8 +41,12 @@ export default function Dashboard() {
 		return <VsixApp onBack={() => setActiveTool(null)} />;
 	}
 
+	if (activeTool === 'sync-to-cursor') {
+		return <SyncApp onBack={() => setActiveTool(null)} />;
+	}
+
 	const items = availableTools.map(tool => ({
-		label: `${tool.icon} ${tool.name}`,
+		label: tool.name,
 		value: tool.id,
 	}));
 
@@ -31,22 +54,35 @@ export default function Dashboard() {
 
 	return (
 		<Box flexDirection="column">
-			<Text bold>DevTools CLI</Text>
-			<Text dimColor>{'─'.repeat(28)}</Text>
+			<Gradient name="vice">
+				<BigText text="vkit" font="block" />
+			</Gradient>
+			<Box>
+				<Text dimColor>Your terminal dev toolbox</Text>
+			</Box>
+			<Text dimColor>{'─'.repeat(36)}</Text>
 			<Box marginTop={1}>
 				<SelectInput
 					items={items}
+					indicatorComponent={Indicator}
+					itemComponent={Item}
 					onHighlight={item => setHighlightedId(item.value)}
 					onSelect={item => setActiveTool(item.value)}
 				/>
 			</Box>
 			{highlightedTool?.description ? (
-				<Box marginTop={1}>
+				<Box marginTop={0.5} paddingLeft={4}>
 					<Text dimColor>{highlightedTool.description}</Text>
 				</Box>
 			) : null}
 			<Box marginTop={1}>
-				<Text dimColor>↑/↓ 选择 · Enter 进入 · q 退出</Text>
+				<KeyHints
+					items={[
+						{key: '↑↓', label: '选择'},
+						{key: '↵', label: '进入'},
+						{key: 'q', label: '退出'},
+					]}
+				/>
 			</Box>
 		</Box>
 	);

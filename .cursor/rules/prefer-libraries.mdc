@@ -1,0 +1,38 @@
+---
+description: 优先使用成熟的第三方库而非手写实现
+alwaysApply: true
+---
+
+# 优先使用成熟的第三方库
+
+任何功能在动手实现前，先评估是否存在成熟、维护良好、与项目现有技术栈一致的社区库。如果有合适的库，优先使用它，而不是手写实现或堆砌标准库样板代码。
+
+## 触发信号
+
+当你发现自己要写较长的样板 / 胶水代码时，把它当作「应该用现成库」的信号，停下来评估：
+
+- 手动包 `Promise`、监听 `error`/`close`、拼接数据流
+- 自己解析格式、遍历目录、做参数 / URL / 日期处理
+- 重复造已被广泛解决的轮子
+
+## 选型原则
+
+- 简要说明取舍（新增依赖 vs 更少代码、更健壮、更易维护），由用户决定是否采用。
+- 优先选择与项目已用生态一致的库。
+- 仅在没有合适库、依赖明显不划算、或项目明确要求零依赖时才手写。
+
+## 示例
+
+```ts
+// ❌ 手写 child_process：30 行样板，易错
+const child = spawn(editor, ['--install-extension', vsixPath], {stdio: [...]});
+let stdout = '';
+child.stdout?.on('data', c => (stdout += c));
+child.on('close', code => { /* 自己拼错误信息 */ });
+
+// ✅ 用 execa：几行，错误处理更健壮
+const result = await execa(editor, ['--install-extension', vsixPath], {reject: false});
+if (!result.failed && result.exitCode === 0) {
+	/* ... */
+}
+```

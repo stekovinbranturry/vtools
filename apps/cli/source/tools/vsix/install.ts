@@ -1,4 +1,5 @@
-import {spawn, spawnSync} from 'node:child_process';
+import {execa} from 'execa';
+import which from 'which';
 
 export type EditorCli = 'cursor' | 'code';
 
@@ -15,8 +16,7 @@ export function findEditorClis(): EditorCli[] {
 	const editors: EditorCli[] = [];
 
 	for (const cli of ['cursor', 'code'] as const) {
-		const result = spawnSync('which', [cli], {encoding: 'utf8'});
-		if (result.status === 0 && result.stdout.trim()) {
+		if (which.sync(cli, {nothrow: true})) {
 			editors.push(cli);
 		}
 	}
@@ -24,48 +24,28 @@ export function findEditorClis(): EditorCli[] {
 	return editors;
 }
 
-export function installVsix(
+export async function installVsix(
 	editor: EditorCli,
 	vsixPath: string,
 ): Promise<{success: boolean; message: string}> {
-	return new Promise(resolve => {
-		const child = spawn(editor, ['--install-extension', vsixPath], {
-			stdio: ['ignore', 'pipe', 'pipe'],
-		});
-
-		let stderr = '';
-		let stdout = '';
-
-		child.stdout?.on('data', (chunk: Buffer) => {
-			stdout += chunk.toString();
-		});
-
-		child.stderr?.on('data', (chunk: Buffer) => {
-			stderr += chunk.toString();
-		});
-
-		child.on('error', error => {
-			resolve({
-				success: false,
-				message: error.message,
-			});
-		});
-
-		child.on('close', code => {
-			if (code === 0) {
-				resolve({
-					success: true,
-					message: `已安装到 ${getEditorLabel(editor)}`,
-				});
-				return;
-			}
-
-			resolve({
-				success: false,
-				message: (stderr || stdout || '安装失败').trim(),
-			});
-		});
+	const result = await execa(editor, ['--install-extension', vsixPath], {
+		reject: false,
 	});
+
+	if (!result.failed && result.exitCode === 0) {
+		return {
+			success: true,
+			message: `已安装到 ${getEditorLabel(editor)}`,
+		};
+	}
+
+	const stderr = typeof result.stderr === 'string' ? result.stderr : '';
+	const stdout = typeof result.stdout === 'string' ? result.stdout : '';
+
+	return {
+		success: false,
+		message: (stderr || stdout || result.shortMessage || '安装失败').trim(),
+	};
 }
 
 export async function installVsixToEditors(
