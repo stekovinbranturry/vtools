@@ -1,10 +1,17 @@
 # @v-kit/cli
 
-在终端里安装 VS Code / Cursor 扩展。从 Marketplace 下载 `.vsix`，并一键安装到本地编辑器。
+![vkit dashboard](https://raw.githubusercontent.com/stekovinbranturry/vtools/main/images/dashboard.png)
+
+终端里的开发者工具箱（Your terminal dev toolbox）。
+
+- **VSIX 安装器** — 输入扩展 ID 或 Marketplace 链接，下载 `.vsix` 并安装到 VS Code / Cursor。
+- **同步扩展到 Cursor** — 读取 VS Code 已装扩展，把 Cursor 缺失的批量同步过去。
+- **自动升级提示** — 有新版本时启动后友好提醒。
+
 
 ## 安装
 
-需要 [Node.js](https://nodejs.org/) 18 或更高版本。
+需要 [Node.js](https://nodejs.org/) 18+。
 
 ```bash
 npm install -g @v-kit/cli
@@ -18,55 +25,21 @@ npm install -g @v-kit/cli
 
 安装完成后，在终端执行 `cursor --version` 或 `code --version` 确认可用。
 
+
 ## 使用
 
-### 交互模式
-
-在终端输入 `vkit` 进入主菜单，选择 **VSIX 安装器**：
-
-![vkit 主菜单](https://raw.githubusercontent.com/stekovinbranturry/vtools/main/images/cli-1.png)
-
-输入扩展 ID（如 `ms-python.python`）或 Marketplace 链接，按 Enter 开始下载：
-
-![输入扩展名称或链接](https://raw.githubusercontent.com/stekovinbranturry/vtools/main/images/cli-2.png)
-
-下载完成后，选择要安装到的编辑器（Cursor / VS Code），按空格切换、Enter 确认，默认全部选择：
-
-![选择安装目标](https://raw.githubusercontent.com/stekovinbranturry/vtools/main/images/cli-3.png)
-
-### 命令行模式
-
-不进入菜单，直接下载并安装：
-
 ```bash
-# 下载并安装最新版
+vkit              # 进入主菜单
+vkit vsix-sync    # 同步 VS Code 扩展到 Cursor
+vkit vsix         # 打开 VSIX 安装器表单
+
+# 直接下载并安装某个扩展
 vkit vsix ms-python.python
-
-# 指定版本
 vkit vsix esbenp.prettier-vscode --version 11.0.0
-
-# 指定保存目录（默认 ~/Downloads）
 vkit vsix ms-python.python --out ./extensions/
 ```
 
-仅打开 VSIX 安装器表单（不经过主菜单）：
-
-```bash
-vkit vsix
-```
-
-## 快捷键
-
-| 场景 | 操作 |
-|------|------|
-| 主菜单 | ↑/↓ 选择 · Enter 进入 · `q` 退出 |
-| VSIX 安装器 | Enter 确认 · Esc 返回 |
-| 选择编辑器 | ↑/↓ 移动 · 空格 切换 · Enter 确认 |
-
-## 问题排查
-
-- **未找到 cursor 或 code 命令**：按上文「使用前准备」在编辑器中安装 Shell 命令，并重启终端。
-- **扩展 ID 怎么填**：打开 [VS Code Marketplace](https://marketplace.visualstudio.com/)，扩展页 URL 中的 `publisher.name` 即为 ID，例如 `ms-python.python`。
+界面均支持键盘操作，提示就在底部，按提示来即可。
 
 ## 链接
 
