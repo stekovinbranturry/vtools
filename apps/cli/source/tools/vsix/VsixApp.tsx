@@ -74,7 +74,7 @@ export default function VsixApp({onBack}: Props) {
 	if (phase === 'install' && downloadResult?.filePath) {
 		return (
 			<Box flexDirection="column">
-				<Text bold>VSIX 下载器</Text>
+				<Text bold>VSIX 安装器</Text>
 				<Text dimColor>{'─'.repeat(28)}</Text>
 				<Box marginTop={1}>
 					<Text color="green">{downloadResult.message}</Text>
@@ -93,7 +93,7 @@ export default function VsixApp({onBack}: Props) {
 
 	return (
 		<Box flexDirection="column">
-			<Text bold>VSIX 下载器</Text>
+			<Text bold>VSIX 安装器</Text>
 			<Text dimColor>{'─'.repeat(28)}</Text>
 
 			<Box marginTop={1} flexDirection="column">
@@ -124,7 +124,7 @@ export default function VsixApp({onBack}: Props) {
 						<Spinner type="dots" /> {message || '处理中…'}
 					</Text>
 				) : (
-					<Text dimColor>Enter 下载 · Esc 返回</Text>
+					<Text dimColor>Enter 安装 · Esc 返回</Text>
 				)}
 			</Box>
 
