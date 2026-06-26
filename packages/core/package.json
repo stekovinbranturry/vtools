@@ -10,7 +10,7 @@
   },
   "publishConfig": {
     "access": "public",
-    "provenance": true
+    "provenance": false
   },
   "type": "module",
   "exports": {
