@@ -1,6 +1,7 @@
 import React, {useMemo, useState} from 'react';
 import {Box, Text, useInput} from 'ink';
 import Spinner from 'ink-spinner';
+import {KeyHint} from '../../../components/ui/key-hint';
 import {
 	type EditorCli,
 	findEditorClis,
@@ -116,7 +117,13 @@ export default function InstallPrompt({vsixPath, onDone}: Props) {
 				})}
 			</Box>
 			<Box marginTop={1}>
-				<Text dimColor>↑/↓ 移动 · 空格 选择 · Enter 确认（不选则跳过）</Text>
+				<KeyHint
+					keys={[
+						{key: '↑↓', label: '移动'},
+						{key: '空格', label: '选择'},
+						{key: '↵', label: '确认（不选则跳过）'},
+					]}
+				/>
 			</Box>
 		</Box>
 	);

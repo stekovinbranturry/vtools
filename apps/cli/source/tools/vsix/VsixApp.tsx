@@ -4,7 +4,20 @@ import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
 import InstallPrompt from './InstallPrompt';
 import {type DownloadResult, runVsixDownload} from './download';
-import KeyHints from '../../components/KeyHints';
+import {Divider} from '../../../components/ui/divider';
+import {StatusIndicator} from '../../../components/ui/status-indicator';
+import {KeyHint} from '../../../components/ui/key-hint';
+
+const PANEL_WIDTH = 40;
+
+function Header() {
+	return (
+		<>
+			<Text bold>VSIX 安装器</Text>
+			<Divider width={PANEL_WIDTH} />
+		</>
+	);
+}
 
 type Status = 'idle' | 'working' | 'done' | 'error';
 
@@ -69,16 +82,12 @@ export default function VsixApp({onBack}: Props) {
 		setMessage(result.message);
 	}
 
-	const statusColor =
-		status === 'error' ? 'red' : status === 'done' ? 'green' : 'yellow';
-
 	if (phase === 'install' && downloadResult?.filePath) {
 		return (
 			<Box flexDirection="column">
-				<Text bold>VSIX 安装器</Text>
-				<Text dimColor>{'─'.repeat(28)}</Text>
+				<Header />
 				<Box marginTop={1}>
-					<Text color="green">{downloadResult.message}</Text>
+					<StatusIndicator status="online" label={downloadResult.message} />
 				</Box>
 				<InstallPrompt
 					vsixPath={downloadResult.filePath}
@@ -94,8 +103,7 @@ export default function VsixApp({onBack}: Props) {
 
 	return (
 		<Box flexDirection="column">
-			<Text bold>VSIX 安装器</Text>
-			<Text dimColor>{'─'.repeat(28)}</Text>
+			<Header />
 
 			<Box marginTop={1} flexDirection="column">
 				<Text>扩展名称或 Marketplace 链接</Text>
@@ -125,8 +133,7 @@ export default function VsixApp({onBack}: Props) {
 						<Spinner type="dots" /> {message || '处理中…'}
 					</Text>
 				) : (
-					<KeyHints
-						items={[
+					<KeyHint keys={[
 							{key: '↵', label: '安装'},
 							{key: 'Esc', label: '返回'},
 						]}
@@ -136,7 +143,10 @@ export default function VsixApp({onBack}: Props) {
 
 			{status !== 'idle' && !busy && (
 				<Box marginTop={1}>
-					<Text color={statusColor}>{message}</Text>
+					<StatusIndicator
+						status={status === 'error' ? 'error' : 'online'}
+						label={message}
+					/>
 				</Box>
 			)}
 		</Box>

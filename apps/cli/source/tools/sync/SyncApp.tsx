@@ -2,7 +2,10 @@ import React, {useEffect, useMemo, useState} from 'react';
 import {Box, Text, useInput} from 'ink';
 import Spinner from 'ink-spinner';
 import {findEditorClis, getEditorLabel} from '../vsix/install';
-import KeyHints from '../../components/KeyHints';
+import {Divider} from '../../../components/ui/divider';
+import {Badge} from '../../../components/ui/badge';
+import {ProgressBar} from '../../../components/ui/progress-bar';
+import {KeyHint} from '../../../components/ui/key-hint';
 import {
 	cleanupTempDir,
 	computeSyncCandidatesAsync,
@@ -14,6 +17,16 @@ import {
 
 const SOURCE = 'code' as const;
 const TARGET = 'cursor' as const;
+const PANEL_WIDTH = 44;
+
+function Header() {
+	return (
+		<>
+			<Text bold>同步扩展到 Cursor</Text>
+			<Divider width={PANEL_WIDTH} />
+		</>
+	);
+}
 
 // Reserve rows for header/separator/summary/hint so the list never pushes the
 // rest of the UI off a short terminal (which leaves confusing stale frames).
@@ -268,8 +281,7 @@ export default function SyncApp({onBack}: Props) {
 	if (phase === 'loading') {
 		return (
 			<Box flexDirection="column">
-				<Text bold>同步扩展到 Cursor</Text>
-				<Text dimColor>{'─'.repeat(28)}</Text>
+				<Header />
 				<Box marginTop={1}>
 					<Text color="yellow">
 						<Spinner type="dots" /> 正在读取 {getEditorLabel(SOURCE)} 与{' '}
@@ -283,13 +295,12 @@ export default function SyncApp({onBack}: Props) {
 	if (phase === 'error') {
 		return (
 			<Box flexDirection="column">
-				<Text bold>同步扩展到 Cursor</Text>
-				<Text dimColor>{'─'.repeat(28)}</Text>
+				<Header />
 				<Box marginTop={1}>
 					<Text color="yellow">{errorMessage}</Text>
 				</Box>
 				<Box marginTop={1}>
-					<KeyHints items={[{key: '↵ / q', label: '返回'}]} />
+					<KeyHint keys={[{key: '↵ / q', label: '返回'}]} />
 				</Box>
 			</Box>
 		);
@@ -299,16 +310,11 @@ export default function SyncApp({onBack}: Props) {
 		const preview = chosen.slice(0, 10);
 		return (
 			<Box flexDirection="column">
-				<Text bold>同步扩展到 Cursor</Text>
-				<Text dimColor>{'─'.repeat(28)}</Text>
+				<Header />
 				<Box marginTop={1}>
-					<Text>
-						即将新增安装{' '}
-						<Text color="green" bold>
-							{chosen.length}
-						</Text>{' '}
-						个扩展到 {getEditorLabel(TARGET)}：
-					</Text>
+					<Text>即将新增安装 </Text>
+					<Badge variant="success">{`${chosen.length} 个`}</Badge>
+					<Text> 到 {getEditorLabel(TARGET)}：</Text>
 				</Box>
 				<Box marginTop={1} flexDirection="column">
 					{preview.map(candidate => (
@@ -322,8 +328,7 @@ export default function SyncApp({onBack}: Props) {
 					) : null}
 				</Box>
 				<Box marginTop={1}>
-					<KeyHints
-						items={[
+					<KeyHint keys={[
 							{key: '↵', label: '确认开始'},
 							{key: 'Esc', label: '返回修改'},
 						]}
@@ -334,15 +339,22 @@ export default function SyncApp({onBack}: Props) {
 	}
 
 	if (phase === 'syncing') {
+		const pct = progress.total
+			? (progress.current / progress.total) * 100
+			: 0;
 		return (
 			<Box flexDirection="column">
-				<Text bold>同步扩展到 Cursor</Text>
-				<Text dimColor>{'─'.repeat(28)}</Text>
+				<Header />
 				<Box marginTop={1}>
 					<Text color="yellow">
-						<Spinner type="dots" /> 同步中（{progress.current}/{progress.total}）：
-						{status}
+						<Spinner type="dots" /> 同步中（{progress.current}/{progress.total}）
 					</Text>
+				</Box>
+				<Box marginTop={1}>
+					<ProgressBar value={pct} width={PANEL_WIDTH} />
+				</Box>
+				<Box marginTop={1}>
+					<Text dimColor>{status}</Text>
 				</Box>
 			</Box>
 		);
@@ -354,14 +366,18 @@ export default function SyncApp({onBack}: Props) {
 
 		return (
 			<Box flexDirection="column">
-				<Text bold>同步扩展到 Cursor</Text>
-				<Text dimColor>{'─'.repeat(28)}</Text>
+				<Header />
 				<Box marginTop={1}>
-					<Text color="green">✔ 成功 {succeeded.length} 个</Text>
+					<Badge variant="success">{`成功 ${succeeded.length}`}</Badge>
+					{failed.length > 0 ? (
+						<Box marginLeft={1}>
+							<Badge variant="error">{`失败 ${failed.length}`}</Badge>
+						</Box>
+					) : null}
 				</Box>
 				{failed.length > 0 ? (
 					<Box marginTop={1} flexDirection="column">
-						<Text color="red">✖ 失败 {failed.length} 个：</Text>
+						<Text color="red">失败明细：</Text>
 						{failed.map(item => (
 							<Text key={item.id} color="red">
 								{'  '}
@@ -371,7 +387,7 @@ export default function SyncApp({onBack}: Props) {
 					</Box>
 				) : null}
 				<Box marginTop={1}>
-					<KeyHints items={[{key: '↵ / q', label: '返回'}]} />
+					<KeyHint keys={[{key: '↵ / q', label: '返回'}]} />
 				</Box>
 			</Box>
 		);
@@ -384,17 +400,24 @@ export default function SyncApp({onBack}: Props) {
 
 	return (
 		<Box flexDirection="column">
-			<Text bold>同步扩展到 Cursor</Text>
-			<Text dimColor>{'─'.repeat(28)}</Text>
+			<Header />
 			<Box>
-				<Text>
-					<Text color="green">可同步 {installable.length} 个</Text>
-					<Text dimColor>
-						{' '}（{getEditorLabel(SOURCE)} 有、{getEditorLabel(TARGET)} 没有）
-					</Text>
-					{hasMoreAbove ? <Text dimColor> · ↑更多</Text> : null}
-					{hasMoreBelow ? <Text dimColor> · ↓更多</Text> : null}
-				</Text>
+				<Badge variant="success">{`可同步 ${installable.length}`}</Badge>
+				{installed.length > 0 ? (
+					<Box marginLeft={1}>
+						<Badge variant="default">{`已在 Cursor ${installed.length}`}</Badge>
+					</Box>
+				) : null}
+				{hasMoreAbove ? (
+					<Box marginLeft={1}>
+						<Text dimColor>↑更多</Text>
+					</Box>
+				) : null}
+				{hasMoreBelow ? (
+					<Box marginLeft={1}>
+						<Text dimColor>↓更多</Text>
+					</Box>
+				) : null}
 			</Box>
 			<Box flexDirection="column">
 				{windowed.map((candidate, index) => {
@@ -435,8 +458,7 @@ export default function SyncApp({onBack}: Props) {
 				</Text>
 			</Box>
 			<Box>
-				<KeyHints
-					items={[
+				<KeyHint keys={[
 						{key: '↑↓', label: '移动'},
 						{key: '空格', label: '选择'},
 						{key: 'a', label: '全选'},

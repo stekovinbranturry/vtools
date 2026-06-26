@@ -13,7 +13,6 @@ import {
 } from './tools/vsix/print-summary';
 import VsixApp from './tools/vsix/VsixApp';
 import SyncApp from './tools/sync/SyncApp';
-import SyncAppInk from './tools/sync/SyncAppInk';
 import {checkForUpdates} from './update-check';
 
 const cli = meow(
@@ -42,9 +41,6 @@ const cli = meow(
 			},
 			out: {
 				type: 'string',
-			},
-			ink: {
-				type: 'boolean',
 			},
 		},
 	},
@@ -105,11 +101,13 @@ if (command === 'vsix') {
 		);
 	}
 } else if (command === 'vsix-sync') {
-	const onBack = () => {
-		process.exit(0);
-	};
-
-	render(cli.flags.ink ? <SyncAppInk onBack={onBack} /> : <SyncApp onBack={onBack} />);
+	render(
+		<SyncApp
+			onBack={() => {
+				process.exit(0);
+			}}
+		/>,
+	);
 } else if (command) {
 	console.error(`Unknown command: ${command}`);
 	process.exit(1);

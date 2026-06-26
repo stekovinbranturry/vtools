@@ -6,7 +6,12 @@ import BigText from 'ink-big-text';
 import {tools} from './registry';
 import VsixApp from './vsix/VsixApp';
 import SyncApp from './sync/SyncApp';
-import KeyHints from '../components/KeyHints';
+import {version} from '../version';
+import {Divider} from '../../components/ui/divider';
+import {Badge} from '../../components/ui/badge';
+import {KeyHint} from '../../components/ui/key-hint';
+
+const PANEL_WIDTH = 44;
 
 function Indicator({isSelected}: {isSelected?: boolean}) {
 	return <Text color="cyan">{isSelected ? '❯' : ' '} </Text>;
@@ -57,10 +62,13 @@ export default function Dashboard() {
 			<Gradient name="vice">
 				<BigText text="vkit" font="block" />
 			</Gradient>
-			<Box>
+			<Box marginBottom={1}>
 				<Text dimColor>Your terminal dev toolbox</Text>
+				<Box marginLeft={2}>
+					<Badge variant="info">{`v${version}`}</Badge>
+				</Box>
 			</Box>
-			<Text dimColor>{'─'.repeat(36)}</Text>
+			<Divider width={PANEL_WIDTH} />
 			<Box marginTop={1}>
 				<SelectInput
 					items={items}
@@ -71,13 +79,15 @@ export default function Dashboard() {
 				/>
 			</Box>
 			{highlightedTool?.description ? (
-				<Box marginTop={0.5} paddingLeft={4}>
+				<Box marginTop={1} paddingLeft={4}>
 					<Text dimColor>{highlightedTool.description}</Text>
 				</Box>
 			) : null}
 			<Box marginTop={1}>
-				<KeyHints
-					items={[
+				<Divider width={PANEL_WIDTH} />
+			</Box>
+			<Box marginTop={1}>
+				<KeyHint keys={[
 						{key: '↑↓', label: '选择'},
 						{key: '↵', label: '进入'},
 						{key: 'q', label: '退出'},
