@@ -1,7 +1,8 @@
 import React, {useMemo, useState} from 'react';
-import {Box, Text, useInput} from 'ink';
+import {Box, Text} from 'ink';
 import Spinner from 'ink-spinner';
 import {KeyHint} from '../../../components/ui/key-hint';
+import {useMultiSelectList} from '../../hooks/useMultiSelectList';
 import {
 	type EditorCli,
 	findEditorClis,
@@ -20,7 +21,6 @@ export default function InstallPrompt({vsixPath, onDone}: Props) {
 	const editors = useMemo(() => findEditorClis(), []);
 
 	const [phase, setPhase] = useState<Phase>('select');
-	const [cursorIndex, setCursorIndex] = useState(0);
 	const [selected, setSelected] = useState<Set<EditorCli>>(
 		() => new Set(editors),
 	);
@@ -45,43 +45,18 @@ export default function InstallPrompt({vsixPath, onDone}: Props) {
 		onDone(result.message, result.success);
 	}
 
-	useInput(
-		(input, key) => {
-			if (key.upArrow) {
-				setCursorIndex(index => (index - 1 + editors.length) % editors.length);
-				return;
-			}
-
-			if (key.downArrow) {
-				setCursorIndex(index => (index + 1) % editors.length);
-				return;
-			}
-
-			if (input === ' ') {
-				const editor = editors[cursorIndex];
-				if (!editor) {
-					return;
-				}
-
-				setSelected(current => {
-					const next = new Set(current);
-					if (next.has(editor)) {
-						next.delete(editor);
-					} else {
-						next.add(editor);
-					}
-
-					return next;
-				});
-				return;
-			}
-
-			if (key.return) {
-				void submit();
-			}
+	const list = useMultiSelectList({
+		items: editors,
+		getKey: editor => editor,
+		setSelected,
+		isActive: phase === 'select' && editors.length > 0,
+		onSubmit: () => {
+			void submit();
 		},
-		{isActive: phase === 'select' && editors.length > 0},
-	);
+		onCancel: () => {
+			onDone('已跳过安装', true);
+		},
+	});
 
 	if (phase === 'installing' && installingEditor) {
 		return (
@@ -106,7 +81,7 @@ export default function InstallPrompt({vsixPath, onDone}: Props) {
 			<Text>选择要安装到的编辑器：</Text>
 			<Box marginTop={1} flexDirection="column">
 				{editors.map((editor, index) => {
-					const isCursor = index === cursorIndex;
+					const isCursor = list.isCursor(index);
 					const isSelected = selected.has(editor);
 					return (
 						<Text key={editor} color={isCursor ? 'cyan' : undefined}>
@@ -121,7 +96,9 @@ export default function InstallPrompt({vsixPath, onDone}: Props) {
 					keys={[
 						{key: '↑↓', label: '移动'},
 						{key: '空格', label: '选择'},
-						{key: '↵', label: '确认（不选则跳过）'},
+						{key: 'a', label: '全选'},
+						{key: '↵', label: '安装'},
+						{key: 'Esc', label: '跳过'},
 					]}
 				/>
 			</Box>

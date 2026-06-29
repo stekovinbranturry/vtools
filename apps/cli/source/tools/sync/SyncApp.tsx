@@ -6,6 +6,7 @@ import {Divider} from '../../../components/ui/divider';
 import {Badge} from '../../../components/ui/badge';
 import {ProgressBar} from '../../../components/ui/progress-bar';
 import {KeyHint} from '../../../components/ui/key-hint';
+import {useMultiSelectList} from '../../hooks/useMultiSelectList';
 import {
 	cleanupTempDir,
 	computeSyncCandidatesAsync,
@@ -51,8 +52,6 @@ export default function SyncApp({onBack}: Props) {
 	const [phase, setPhase] = useState<Phase>('loading');
 	const [candidates, setCandidates] = useState<SyncCandidate[]>([]);
 	const [errorMessage, setErrorMessage] = useState('');
-	const [cursorIndex, setCursorIndex] = useState(0);
-	const [scrollOffset, setScrollOffset] = useState(0);
 	const [selected, setSelected] = useState<Set<string>>(() => new Set());
 	const [progress, setProgress] = useState({current: 0, total: 0});
 	const [status, setStatus] = useState('');
@@ -171,112 +170,54 @@ export default function SyncApp({onBack}: Props) {
 		setPhase('done');
 	}
 
-	function moveCursor(delta: number) {
-		setCursorIndex(prev => {
-			const next = (prev + delta + installable.length) % installable.length;
-
-			setScrollOffset(offset => {
-				if (next < offset) {
-					return next;
-				}
-
-				if (next >= offset + visibleCount) {
-					return next - visibleCount + 1;
-				}
-
-				return offset;
-			});
-
-			return next;
-		});
-	}
-
-	useInput((input, key) => {
-		if (phase === 'loading') {
-			if (key.escape || input === 'q') {
-				onBack();
-			}
-
-			return;
-		}
-
-		if (phase === 'done' || phase === 'error') {
-			if (key.return || input === 'q' || key.escape) {
-				onBack();
-			}
-
-			return;
-		}
-
-		if (phase === 'confirm') {
-			if (key.return) {
-				void runSync();
-				return;
-			}
-
-			if (key.escape || input === 'q') {
-				setPhase('select');
-			}
-
-			return;
-		}
-
-		if (phase !== 'select') {
-			return;
-		}
-
-		if (key.escape) {
-			onBack();
-			return;
-		}
-
-		if (key.upArrow) {
-			moveCursor(-1);
-			return;
-		}
-
-		if (key.downArrow) {
-			moveCursor(1);
-			return;
-		}
-
-		if (input === ' ') {
-			const candidate = installable[cursorIndex];
-			if (!candidate) {
-				return;
-			}
-
-			setSelected(current => {
-				const next = new Set(current);
-				if (next.has(candidate.id)) {
-					next.delete(candidate.id);
-				} else {
-					next.add(candidate.id);
-				}
-
-				return next;
-			});
-			return;
-		}
-
-		if (input === 'a') {
-			setSelected(current =>
-				current.size === installable.length
-					? new Set()
-					: new Set(installable.map(c => c.id)),
-			);
-			return;
-		}
-
-		if (key.return) {
+	const list = useMultiSelectList({
+		items: installable,
+		getKey: c => c.id,
+		setSelected,
+		isActive: phase === 'select',
+		visibleCount,
+		onSubmit: () => {
 			if (selected.size === 0) {
 				onBack();
 				return;
 			}
 
 			setPhase('confirm');
-		}
+		},
+		onCancel: onBack,
 	});
+
+	useInput(
+		(input, key) => {
+			if (phase === 'loading') {
+				if (key.escape || input === 'q') {
+					onBack();
+				}
+
+				return;
+			}
+
+			if (phase === 'done' || phase === 'error') {
+				if (key.return || input === 'q' || key.escape) {
+					onBack();
+				}
+
+				return;
+			}
+
+			if (phase === 'confirm') {
+				if (key.return) {
+					void runSync();
+					return;
+				}
+
+				if (key.escape || input === 'q') {
+					setPhase('select');
+				}
+			}
+		},
+		{isActive: phase !== 'select'},
+	);
 
 	if (phase === 'loading') {
 		return (
@@ -312,8 +253,8 @@ export default function SyncApp({onBack}: Props) {
 			<Box flexDirection="column">
 				<Header />
 				<Box marginTop={1}>
-					<Text>即将新增安装 </Text>
-					<Badge variant="success">{`${chosen.length} 个`}</Badge>
+					<Text>即将安装 </Text>
+					<Badge variant="success">{`${chosen.length} 个插件`}</Badge>
 					<Text> 到 {getEditorLabel(TARGET)}：</Text>
 				</Box>
 				<Box marginTop={1} flexDirection="column">
@@ -393,9 +334,7 @@ export default function SyncApp({onBack}: Props) {
 		);
 	}
 
-	const windowed = installable.slice(scrollOffset, scrollOffset + visibleCount);
-	const hasMoreBelow = scrollOffset + visibleCount < installable.length;
-	const hasMoreAbove = scrollOffset > 0;
+	const {windowed, scrollOffset, hasMoreAbove, hasMoreBelow} = list;
 	const installedPreview = installed.slice(0, INSTALLED_PREVIEW);
 
 	return (
@@ -403,11 +342,6 @@ export default function SyncApp({onBack}: Props) {
 			<Header />
 			<Box>
 				<Badge variant="success">{`可同步 ${installable.length}`}</Badge>
-				{installed.length > 0 ? (
-					<Box marginLeft={1}>
-						<Badge variant="default">{`已在 Cursor ${installed.length}`}</Badge>
-					</Box>
-				) : null}
 				{hasMoreAbove ? (
 					<Box marginLeft={1}>
 						<Text dimColor>↑更多</Text>
@@ -422,7 +356,7 @@ export default function SyncApp({onBack}: Props) {
 			<Box flexDirection="column">
 				{windowed.map((candidate, index) => {
 					const realIndex = scrollOffset + index;
-					const isCursor = realIndex === cursorIndex;
+					const isCursor = list.isCursor(realIndex);
 					const isSelected = selected.has(candidate.id);
 					return (
 						<Text key={candidate.id} color={isCursor ? 'cyan' : undefined}>
