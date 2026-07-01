@@ -19,50 +19,51 @@ pnpm test               # run tests
 
 ## CLI
 
+Interactive dashboard and script-mode commands. See [apps/cli/readme.md](apps/cli/readme.md) for full usage.
+
+**Tools:** VS Code / Cursor extension install & sync, Node port viewer (macOS).
+
 ```sh
 pnpm --filter @v-kit/cli build
 node apps/cli/dist/cli.js            # interactive dashboard
 node apps/cli/dist/cli.js vsix esbenp.prettier-vscode
+node apps/cli/dist/cli.js vsix-sync
 ```
 
-To install globally: `cd apps/cli && pnpm link --global` (exposes `vkit`).
+Install globally:
+
+```sh
+npm install -g @v-kit/cli
+# or: cd apps/cli && pnpm link --global
+```
 
 ## Publish to npm
 
-Published packages: **`@v-kit/core`** (library) and **`@v-kit/cli`** (CLI). Both stay on the **same version** (`fixed` group in Changesets).
+Published packages: **`@v-kit/core`** (library) and **`@v-kit/cli`** (CLI). Both stay on the **same version** (Changesets `fixed` group).
+
+**Publishing is CI-only** — do not run `npm publish` or `pnpm release` locally. The [Release workflow](.github/workflows/release.yml) handles build, provenance, and npm publish.
 
 ### One-time setup
 
 1. On [npmjs.com](https://www.npmjs.com/), create an **Automation** access token with publish permission.
 2. In GitHub repo **Settings → Secrets and variables → Actions**, add `NPM_TOKEN` with that token.
-3. Ensure the npm package names `@v-kit/cli` and `@v-kit/core` are available (the `v-kit` npm org must exist and the token must have publish access to it).
+3. Ensure `@v-kit/cli` and `@v-kit/core` exist under the `v-kit` npm org and the token can publish to them.
 
-### Release flow (automated)
+### Release flow
 
-1. In your feature PR, add a changeset when you change publishable packages:
+1. When changing publishable packages, add a changeset and commit it with your feature:
    ```sh
    pnpm changeset
    ```
-   Commit the generated `.changeset/*.md` file with your PR.
+2. Merge to `main`.
+3. CI opens a **Version Packages** PR (version bump + CHANGELOG).
+4. Merge that PR → CI publishes to npm and pushes git tags.
 
-2. Merge the PR to `main`.
-
-3. The [Release workflow](.github/workflows/release.yml) will open a **Version Packages** PR that bumps versions and updates changelogs.
-
-4. Merge the Version Packages PR → CI builds and publishes to npm (order and `workspace:*` rewriting are handled by Changesets).
-
-Users can then install globally:
+### Local only (no publish)
 
 ```sh
-npm install -g @v-kit/cli
-vkit --help
-```
-
-### Local dry run
-
-```sh
-pnpm changeset version   # apply pending changesets locally
-pnpm release             # build + publish (requires npm login)
+pnpm changeset version   # preview version bump locally
+pnpm build               # verify build
 ```
 
 ## Extension
