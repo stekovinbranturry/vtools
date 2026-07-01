@@ -4,6 +4,7 @@ import SelectInput from 'ink-select-input';
 import {tools} from './registry';
 import VsixApp from './vsix/VsixApp';
 import SyncApp from './sync/SyncApp';
+import PortViewerApp from './port/PortViewerApp';
 import {Banner} from '../components/Banner';
 import {Divider} from '../../components/ui/divider';
 import {KeyHint} from '../../components/ui/key-hint';
@@ -17,7 +18,7 @@ function Indicator({isSelected}: {isSelected?: boolean}) {
 function Item({isSelected, label}: {isSelected?: boolean; label: string}) {
 	return (
 		<Text>
-			<Text color={isSelected ? 'cyan' : 'gray'}>◆ </Text>
+			{/* <Text color={isSelected ? 'cyan' : 'gray'}>◆ </Text> */}
 			<Text color={isSelected ? 'cyan' : undefined} bold={isSelected}>
 				{label}
 			</Text>
@@ -57,6 +58,15 @@ export default function Dashboard() {
 		);
 	}
 
+	if (activeTool === 'port-viewer') {
+		return (
+			<Box flexDirection="column">
+				<Banner />
+				<PortViewerApp onBack={() => setActiveTool(null)} />
+			</Box>
+		);
+	}
+
 	const items = availableTools.map(tool => ({
 		label: tool.name,
 		value: tool.id,
@@ -78,7 +88,7 @@ export default function Dashboard() {
 				/>
 			</Box>
 			{highlightedTool?.description ? (
-				<Box marginTop={1} paddingLeft={4}>
+				<Box marginTop={1} paddingLeft={2}>
 					<Text dimColor>{highlightedTool.description}</Text>
 				</Box>
 			) : null}

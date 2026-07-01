@@ -5,13 +5,13 @@ Status: Approved
 
 ## Goal
 
-给 `vkit` CLI 新增一个「查看 / 释放端口」工具 `port-viewer`：列出正在监听的 TCP 端口及其进程，帮助开发时定位「3000 端口被占，却不知道是谁启动的」，并支持一键关闭占用进程。
+给 `vkit` CLI 新增一个「查看管理 Node 端口」工具 `port-viewer`：列出正在监听的 TCP 端口及其进程，帮助开发时定位「3000 端口被占，却不知道是谁启动的」，并支持一键关闭占用进程。
 
 仅支持 macOS（底层用 `lsof`）。
 
 ## UX
 
-进入 Dashboard 选择「查看 / 释放端口」后进入子工具，交互为一个 phase 状态机：
+进入 Dashboard 选择「查看管理 Node 端口」后进入子工具，交互为一个 phase 状态机：
 
 - `loading`：跑 `lsof` 时显示 spinner。
 - `list`：
@@ -40,7 +40,7 @@ source/tools/port/
 └── PortViewerApp.tsx  # Ink UI
 ```
 
-- `registry.ts` 新增：`{ id: 'port-viewer', name: '查看 / 释放端口', description: '列出正在监听的端口及其进程，一键关闭占用（如 3000 被占）', available: true }`。
+- `registry.ts` 新增：`{ id: 'port-viewer', name: '查看管理 Node 端口', description: '列出正在监听的端口及其进程，一键关闭占用（如 3000 被占）', available: true }`。
 - `Dashboard.tsx` 新增 `activeTool === 'port-viewer'` 分支，渲染 `<PortViewerApp onBack={...} />`。
 
 ## Logic (`ports.ts`)
