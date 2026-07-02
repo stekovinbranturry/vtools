@@ -5,12 +5,21 @@ import {Confirm} from '../../../components/ui/confirm';
 import {DataTable, type DataTableColumn} from '../../../components/ui/data-table';
 import {Divider} from '../../../components/ui/divider';
 import {KeyHint} from '../../../components/ui/key-hint';
-import {killPort, listListeningPorts, type PortEntry} from './ports';
+import {killPort, listListeningPorts, truncateText, type PortEntry} from './ports';
 
 const DIVIDER_WIDTH = 44;
-const CHROME_ROWS = 14;
+const CHROME_ROWS = 15;
 const MIN_PAGE_SIZE = 4;
 const MAX_PAGE_SIZE = 12;
+const COMMAND_COL_WIDTH = 36;
+const PORT_COL_WIDTH = 8;
+const PID_COL_WIDTH = 10;
+const TABLE_COLUMN_GAP = 2;
+const TABLE_MAX_WIDTH =
+	PORT_COL_WIDTH +
+	PID_COL_WIDTH +
+	COMMAND_COL_WIDTH +
+	TABLE_COLUMN_GAP * 2;
 
 type PortTableRow = {
 	port: string;
@@ -27,7 +36,7 @@ type Props = {
 function Header() {
 	return (
 		<>
-			<Text bold>查看管理 Node 端口</Text>
+			<Text bold>管理 Node 端口</Text>
 			<Divider width={DIVIDER_WIDTH} />
 		</>
 	);
@@ -97,16 +106,20 @@ export default function PortViewerApp({onBack}: Props) {
 
 	const columns = useMemo(
 		(): DataTableColumn<PortTableRow>[] => [
-			{key: 'port', header: 'Port', width: 8, align: 'right', sortable: true},
-			{key: 'pid', header: 'PID', width: 8, align: 'right', sortable: true},
+			{key: 'port', header: 'Port', width: PORT_COL_WIDTH, align: 'right', sortable: true},
+			{key: 'pid', header: 'PID', width: PID_COL_WIDTH, align: 'right', sortable: true},
 			{
 				key: 'command',
 				header: 'Command',
 				align: 'left',
+				width: COMMAND_COL_WIDTH,
+				render: value => truncateText(String(value ?? ''), COMMAND_COL_WIDTH),
 			},
 		],
 		[],
 	);
+
+	const highlightedEntry = findEntry(highlighted, entries);
 
 	function beginKill(entry: PortEntry | undefined) {
 		if (!entry) {
@@ -246,8 +259,10 @@ export default function PortViewerApp({onBack}: Props) {
 							columns={columns}
 							data={tableData}
 							pageSize={pageSize}
+							maxWidth={TABLE_MAX_WIDTH}
+							columnGap={TABLE_COLUMN_GAP}
 							searchable
-							searchPlaceholder="端口号 / 命令"
+							searchPlaceholder="搜索端口号或命令"
 							emptyMessage="没有匹配的端口"
 							showFooter={false}
 							focus={phase === 'list'}
@@ -256,6 +271,11 @@ export default function PortViewerApp({onBack}: Props) {
 								beginKill(findEntry(row, entries));
 							}}
 						/>
+						{highlightedEntry && phase === 'list' ? (
+							<Box marginTop={1}>
+								<Text dimColor>{highlightedEntry.fullCommand}</Text>
+							</Box>
+						) : null}
 					</Box>
 				)}
 			</Box>

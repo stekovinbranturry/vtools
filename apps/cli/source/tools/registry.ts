@@ -21,7 +21,7 @@ export const tools: ToolDefinition[] = [
 	},
 	{
 		id: 'port-viewer',
-		name: '查看管理 Node 端口',
+		name: '管理 Node 端口',
 		description:
 			'列出正在监听的端口及其进程，一键关闭占用（如 3000 被占）',
 		available: true,

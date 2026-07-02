@@ -31,8 +31,10 @@ function resolveWidths<T extends Record<string, unknown>>(
   columns: DataTableColumn<T>[],
   data: T[],
   termWidth: number,
-  selectable: boolean,
+  maxWidth: number | undefined,
+  columnGap: number,
 ): number[] {
+  const budget = maxWidth !== undefined ? Math.min(termWidth, maxWidth) : termWidth;
   const natural = columns.map((col) => {
     if (col.width !== undefined) return col.width;
     const headerLen = col.header.length;
@@ -43,15 +45,15 @@ function resolveWidths<T extends Record<string, unknown>>(
     return Math.max(headerLen, maxCell, 4);
   });
 
-  const selectorWidth = selectable ? 2 : 0;
-  const gapWidth = Math.max(0, columns.length - 1);
+  const selectorWidth = 0;
+  const gapWidth = Math.max(0, columns.length - 1) * columnGap;
   const totalNatural = natural.reduce((sum, width) => sum + width, 0) + selectorWidth + gapWidth + 2;
 
-  if (totalNatural <= termWidth) return natural;
+  if (totalNatural <= budget) return natural;
 
   const contentWidth = Math.max(
     columns.length * 4,
-    termWidth - selectorWidth - gapWidth - 2,
+    budget - selectorWidth - gapWidth - 2,
   );
   const naturalTotal = natural.reduce((sum, width) => sum + width, 0);
   if (naturalTotal === 0) return natural;
@@ -83,6 +85,10 @@ export interface DataTableProps<T> {
   showFooter?: boolean;
   emptyMessage?: string;
   focus?: boolean;
+  /** Cap table content width; does not stretch to fill the terminal. */
+  maxWidth?: number;
+  /** Spaces between columns. */
+  columnGap?: number;
   theme?: InkUITheme;
 }
 
@@ -99,6 +105,8 @@ export function DataTable<T extends Record<string, unknown>>({
   showFooter = true,
   emptyMessage = 'No data',
   focus = true,
+  maxWidth,
+  columnGap = 2,
   theme = darkTheme,
 }: DataTableProps<T>): React.ReactElement {
   const { stdout } = useStdout();
@@ -132,8 +140,8 @@ export function DataTable<T extends Record<string, unknown>>({
   const pageData = sorted.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
   const colWidths = useMemo(
-    () => resolveWidths(columns, sorted, termWidth, selectable),
-    [columns, sorted, termWidth, selectable],
+    () => resolveWidths(columns, sorted, termWidth, maxWidth, columnGap),
+    [columns, sorted, termWidth, maxWidth, columnGap],
   );
 
   const aligns = useMemo(
@@ -167,7 +175,7 @@ export function DataTable<T extends Record<string, unknown>>({
   ): React.ReactNode {
     return values.map((value, index) => (
       <React.Fragment key={columns[index]?.key ?? index}>
-        {index > 0 ? <Text> </Text> : null}
+        {index > 0 ? <Text>{' '.repeat(columnGap)}</Text> : null}
         {formatCell(value, index, options)}
       </React.Fragment>
     ));
@@ -175,8 +183,8 @@ export function DataTable<T extends Record<string, unknown>>({
 
   const tableInnerWidth =
     colWidths.reduce((sum, width) => sum + width, 0) +
-    Math.max(0, columns.length - 1) +
-    (selectable ? 2 : 0);
+    Math.max(0, columns.length - 1) * columnGap;
+  const tableOuterWidth = tableInnerWidth + 2;
 
   useEffect(() => {
     onHighlightChange?.(pageData[selectedRow] ?? null);
@@ -245,10 +253,14 @@ export function DataTable<T extends Record<string, unknown>>({
       )}
 
       {/* Table */}
-      <Box flexDirection="column" borderStyle={bord as 'single'} borderColor={theme.colors.border}>
+      <Box
+        flexDirection="column"
+        width={tableOuterWidth}
+        borderStyle={bord as 'single'}
+        borderColor={theme.colors.border}
+      >
         {/* Header */}
         <Box flexDirection="row">
-          {selectable && <Text color={theme.colors.muted}>{'  '}</Text>}
           {renderRowCells(
             columns.map((col) => {
               const sortArrow =
@@ -277,11 +289,6 @@ export function DataTable<T extends Record<string, unknown>>({
             const isSelected = i === selectedRow && selectable;
             return (
               <Box key={i} flexDirection="row">
-                {selectable && (
-                  <Text color={isSelected ? theme.colors.primary : theme.colors.muted}>
-                    {isSelected ? '❯ ' : '  '}
-                  </Text>
-                )}
                 {renderRowCells(
                   columns.map((col) => {
                     const val = col.render
@@ -290,7 +297,7 @@ export function DataTable<T extends Record<string, unknown>>({
                     return val;
                   }),
                   {
-                    color: isSelected ? theme.colors.text : theme.colors.muted,
+                    color: isSelected ? theme.colors.focus : theme.colors.muted,
                     bold: isSelected,
                     dimColor: !isSelected,
                   },

@@ -4,13 +4,6 @@
 
 终端里的开发者工具箱（Your terminal dev toolbox）。
 
-- **安装 VS Code / Cursor 插件** — 输入插件 ID 或 Marketplace 链接，下载 `.vsix` 并安装到 VS Code / Cursor。
-- **同步插件到 Cursor** — 读取 VS Code 已装插件，把 Cursor 缺失的批量同步过去。
-- **查看管理 Node 端口** — 列出 macOS 上 node 进程的 TCP 监听端口，支持过滤与一键关闭占用（如 3000 被占）。
-- **运行 Scripts** — 从当前目录及子包选择 npm / pnpm / yarn scripts 并运行。
-- **自动升级提示** — 有新版本时启动后友好提醒。
-
-
 ## 安装
 
 需要 [Node.js](https://nodejs.org/) 18+。
@@ -27,14 +20,14 @@ npm install -g @v-kit/cli
 
 安装完成后，在终端执行 `cursor --version` 或 `code --version` 确认可用。
 
-**查看管理 Node 端口**仅支持 **macOS**（依赖 `lsof`），无需额外配置。
+**管理 Node 端口**仅支持 **macOS**（依赖 `lsof`），无需额外配置。
 
 
 ## 使用
 
 ```bash
 vkit              # 进入主菜单，选择工具
-vkit port         # 查看管理 Node 端口
+vkit port         # 管理 Node 端口
 vkit run          # 运行 Scripts
 vkit vsix-sync    # 同步 VS Code 插件到 Cursor
 vkit vsix         # 打开 安装 VS Code / Cursor 插件表单
@@ -53,27 +46,11 @@ vkit run
 
 或在主菜单选择 **「运行 Scripts」**。从**当前工作目录及子目录**扫描 scripts（不向上查找 monorepo 根）。
 
-| 键 | 作用 |
-|---|---|
-| `←→` / `1-9` | 切换包 |
-| `↑↓` | 移动 |
-| `空格` | 选择 |
-| `↵` | 运行 |
-| `/` `f` | 过滤 |
-| `r` | 刷新 |
-| `Esc` | 返回 |
-
-运行时会暂时退出 TUI 显示命令输出，结束后自动回到列表。当前目录所在包名后带 `*`。
-
-### 查看管理 Node 端口
+### 管理 Node 端口
 
 ```bash
 vkit port
 ```
-
-或在主菜单选择对应工具。支持 `/` 搜索、`s` 排序、`k` / `↵` 关闭端口。
-
-界面均支持键盘操作，提示就在底部，按提示来即可。
 
 ## 链接
 
