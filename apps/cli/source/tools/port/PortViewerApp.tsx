@@ -1,29 +1,16 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {Box, Text, useInput} from 'ink';
-import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
 import {Confirm} from '../../../components/ui/confirm';
+import {DataTable, type DataTableColumn} from '../../../components/ui/data-table';
 import {Divider} from '../../../components/ui/divider';
 import {KeyHint} from '../../../components/ui/key-hint';
-import {Table, type TableColumn} from '../../../components/ui/table';
-import {
-	filterPorts,
-	killPort,
-	listListeningPorts,
-	type PortEntry,
-} from './ports';
+import {killPort, listListeningPorts, type PortEntry} from './ports';
 
 const DIVIDER_WIDTH = 44;
-const CHROME_ROWS = 20;
-const MIN_VISIBLE = 4;
-const MAX_VISIBLE = 10;
-
-const COMMAND_COL_MAX = 36;
-
-function getCommandColumnWidth(): number {
-	const term = process.stdout.columns ?? 80;
-	return Math.max(16, Math.min(COMMAND_COL_MAX, term - 24));
-}
+const CHROME_ROWS = 14;
+const MIN_PAGE_SIZE = 4;
+const MAX_PAGE_SIZE = 12;
 
 type PortTableRow = {
 	port: string;
@@ -32,7 +19,6 @@ type PortTableRow = {
 };
 
 type Phase = 'loading' | 'list' | 'confirm' | 'killing' | 'error';
-type Focus = 'list' | 'filter';
 
 type Props = {
 	onBack: () => void;
@@ -47,32 +33,30 @@ function Header() {
 	);
 }
 
-function getVisibleCount(total: number): number {
+function getPageSize(): number {
 	const rows = process.stdout.rows ?? 24;
 	const fit = rows - CHROME_ROWS;
-	return Math.max(MIN_VISIBLE, Math.min(total, MAX_VISIBLE, fit));
+	return Math.max(MIN_PAGE_SIZE, Math.min(MAX_PAGE_SIZE, fit));
+}
+
+function findEntry(row: PortTableRow | null, entries: PortEntry[]): PortEntry | undefined {
+	if (!row) {
+		return undefined;
+	}
+
+	return entries.find(
+		entry => String(entry.port) === row.port && String(entry.pid) === row.pid,
+	);
 }
 
 export default function PortViewerApp({onBack}: Props) {
 	const [phase, setPhase] = useState<Phase>('loading');
 	const [entries, setEntries] = useState<PortEntry[]>([]);
-	const [filter, setFilter] = useState('');
-	const [focus, setFocus] = useState<Focus>('list');
-	const [cursorIndex, setCursorIndex] = useState(0);
-	const [scrollOffset, setScrollOffset] = useState(0);
+	const [highlighted, setHighlighted] = useState<PortTableRow | null>(null);
 	const [errorMessage, setErrorMessage] = useState('');
 	const [target, setTarget] = useState<PortEntry | null>(null);
 	const [statusMessage, setStatusMessage] = useState('');
-
-	const filtered = useMemo(
-		() => filterPorts(entries, filter),
-		[entries, filter],
-	);
-
-	const visibleCount = useMemo(
-		() => getVisibleCount(filtered.length),
-		[filtered.length],
-	);
+	const [pageSize, setPageSize] = useState(getPageSize);
 
 	const loadPorts = useCallback(async (options?: {silent?: boolean}) => {
 		if (!options?.silent) {
@@ -84,8 +68,6 @@ export default function PortViewerApp({onBack}: Props) {
 		try {
 			const found = await listListeningPorts();
 			setEntries(found);
-			setCursorIndex(0);
-			setScrollOffset(0);
 			setPhase('list');
 		} catch (error) {
 			setErrorMessage(
@@ -100,38 +82,31 @@ export default function PortViewerApp({onBack}: Props) {
 	}, [loadPorts]);
 
 	useEffect(() => {
-		if (cursorIndex >= filtered.length) {
-			setCursorIndex(Math.max(0, filtered.length - 1));
-		}
-	}, [cursorIndex, filtered.length]);
+		setPageSize(getPageSize());
+	}, [entries.length]);
 
-	function exitFilter() {
-		setFocus('list');
-	}
+	const tableData = useMemo(
+		(): PortTableRow[] =>
+			entries.map(entry => ({
+				port: String(entry.port),
+				pid: String(entry.pid),
+				command: entry.fullCommand,
+			})),
+		[entries],
+	);
 
-	function moveCursor(delta: number) {
-		if (filtered.length === 0) {
-			return;
-		}
-
-		setCursorIndex(previous => {
-			const next = (previous + delta + filtered.length) % filtered.length;
-
-			setScrollOffset(offset => {
-				if (next < offset) {
-					return next;
-				}
-
-				if (next >= offset + visibleCount) {
-					return next - visibleCount + 1;
-				}
-
-				return offset;
-			});
-
-			return next;
-		});
-	}
+	const columns = useMemo(
+		(): DataTableColumn<PortTableRow>[] => [
+			{key: 'port', header: 'Port', width: 8, align: 'right', sortable: true},
+			{key: 'pid', header: 'PID', width: 8, align: 'right', sortable: true},
+			{
+				key: 'command',
+				header: 'Command',
+				align: 'left',
+			},
+		],
+		[],
+	);
 
 	function beginKill(entry: PortEntry | undefined) {
 		if (!entry) {
@@ -185,18 +160,8 @@ export default function PortViewerApp({onBack}: Props) {
 				return;
 			}
 
-			if (key.upArrow) {
-				moveCursor(-1);
-				return;
-			}
-
-			if (key.downArrow) {
-				moveCursor(1);
-				return;
-			}
-
-			if (input === '/' || input === 'f') {
-				setFocus('filter');
+			if (input === 'k') {
+				beginKill(findEntry(highlighted, entries));
 				return;
 			}
 
@@ -205,65 +170,11 @@ export default function PortViewerApp({onBack}: Props) {
 				return;
 			}
 
-			if (input === 'k' || key.return) {
-				beginKill(filtered[cursorIndex]);
-				return;
-			}
-
 			if (key.escape || input === 'q') {
 				onBack();
 			}
 		},
-		{isActive: phase === 'list' && focus === 'list'},
-	);
-
-	useInput(
-		(input, key) => {
-			if (key.escape || key.tab) {
-				exitFilter();
-				return;
-			}
-
-			if (key.return) {
-				exitFilter();
-				return;
-			}
-
-			if (input === 'q' && !filter) {
-				onBack();
-			}
-		},
-		{isActive: phase === 'list' && focus === 'filter'},
-	);
-
-	const windowed = filtered.slice(scrollOffset, scrollOffset + visibleCount);
-	const hasMoreAbove = scrollOffset > 0;
-	const hasMoreBelow = scrollOffset + visibleCount < filtered.length;
-	const selected = filtered[cursorIndex];
-	const selectedTableIndex = cursorIndex - scrollOffset;
-
-	const columns = useMemo(
-		(): TableColumn<PortTableRow>[] => [
-			{key: 'port', header: 'Port', width: 6, align: 'right'},
-			{key: 'pid', header: 'PID', width: 8, align: 'right'},
-			{
-				key: 'command',
-				header: 'Command',
-				align: 'left',
-				width: getCommandColumnWidth(),
-			},
-		],
-		[],
-	);
-
-	const tableData = useMemo(
-		(): PortTableRow[] =>
-			windowed.map(entry => ({
-				port: String(entry.port),
-				pid: String(entry.pid),
-				command: entry.fullCommand,
-			})),
-		[windowed],
+		{isActive: phase === 'list'},
 	);
 
 	const confirmKeyHints = [
@@ -272,20 +183,15 @@ export default function PortViewerApp({onBack}: Props) {
 		{key: 'Esc', label: '返回'},
 	];
 
-	const listKeyHints =
-		focus === 'filter'
-			? [
-					{key: '↵', label: '回到列表'},
-					{key: 'Esc', label: '回到列表'},
-					{key: 'Tab', label: '回到列表'},
-				]
-			: [
-					{key: '↑↓', label: '移动'},
-					{key: '/ f', label: '过滤'},
-					{key: 'k ↵', label: '关闭'},
-					{key: 'r', label: '刷新'},
-					{key: 'Esc', label: '返回'},
-				];
+	const listKeyHints = [
+		{key: '↑↓', label: '移动'},
+		{key: '←→', label: '翻页'},
+		{key: '/', label: '搜索'},
+		{key: 's', label: '排序'},
+		{key: 'k ↵', label: '关闭'},
+		{key: 'r', label: '刷新'},
+		{key: 'Esc', label: '返回'},
+	];
 
 	if (phase === 'loading') {
 		return (
@@ -326,72 +232,30 @@ export default function PortViewerApp({onBack}: Props) {
 					<Text dimColor>当前没有监听中的 node 端口</Text>
 				) : (
 					<Box flexDirection="column">
-						<Box>
+						<Box marginBottom={1}>
 							<Text>
 								共{' '}
 								<Text color="cyan" bold>
-									{filtered.length}
+									{entries.length}
 								</Text>{' '}
 								个端口
 							</Text>
-							{hasMoreAbove ? (
-								<Box marginLeft={1}>
-									<Text dimColor>↑更多</Text>
-								</Box>
-							) : null}
-							{hasMoreBelow ? (
-								<Box marginLeft={1}>
-									<Text dimColor>↓更多</Text>
-								</Box>
-							) : null}
 						</Box>
 
-						<Box marginTop={1} flexDirection="column">
-							<Text color={focus === 'filter' ? 'cyan' : 'gray'}>
-								{focus === 'filter' ? '▸ 过滤中' : '过滤（端口号 / 命令）'}
-							</Text>
-							<Text color={focus === 'filter' ? 'cyan' : undefined}>
-								{focus === 'filter' ? '> ' : '  '}
-								{focus === 'filter' ? (
-									<TextInput
-										value={filter}
-										onChange={value => {
-											setFilter(value);
-											setCursorIndex(0);
-											setScrollOffset(0);
-										}}
-										onSubmit={exitFilter}
-										placeholder="3000"
-									/>
-								) : (
-									<Text dimColor={!filter}>{filter || '—'}</Text>
-								)}
-							</Text>
-						</Box>
-
-						{filtered.length === 0 ? (
-							<Box marginTop={1}>
-								<Text dimColor>没有匹配的端口</Text>
-							</Box>
-						) : (
-							<Box marginTop={1} flexDirection="column">
-								<Table
-									columns={columns}
-									data={tableData}
-									selectedRowIndex={
-										selectedTableIndex >= 0 &&
-										selectedTableIndex < tableData.length
-											? selectedTableIndex
-											: undefined
-									}
-								/>
-								{selected && focus === 'list' ? (
-									<Box marginTop={1}>
-										<Text dimColor>{selected.fullCommand}</Text>
-									</Box>
-								) : null}
-							</Box>
-						)}
+						<DataTable
+							columns={columns}
+							data={tableData}
+							pageSize={pageSize}
+							searchable
+							searchPlaceholder="端口号 / 命令"
+							emptyMessage="没有匹配的端口"
+							showFooter={false}
+							focus={phase === 'list'}
+							onHighlightChange={setHighlighted}
+							onSelect={row => {
+								beginKill(findEntry(row, entries));
+							}}
+						/>
 					</Box>
 				)}
 			</Box>
@@ -423,7 +287,7 @@ export default function PortViewerApp({onBack}: Props) {
 				<Box>
 					<KeyHint keys={confirmKeyHints} />
 				</Box>
-			) : phase === 'list' ? (
+			) : phase === 'list' && entries.length > 0 ? (
 				<Box>
 					<KeyHint keys={listKeyHints} />
 				</Box>

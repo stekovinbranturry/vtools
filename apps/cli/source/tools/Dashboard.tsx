@@ -5,7 +5,9 @@ import {tools} from './registry';
 import VsixApp from './vsix/VsixApp';
 import SyncApp from './sync/SyncApp';
 import PortViewerApp from './port/PortViewerApp';
+import ScriptRunnerApp from './script-runner/ScriptRunnerApp';
 import {Banner} from '../components/Banner';
+import {consumeResume} from '../lib/ui-session';
 import {Divider} from '../../components/ui/divider';
 import {KeyHint} from '../../components/ui/key-hint';
 
@@ -28,7 +30,10 @@ function Item({isSelected, label}: {isSelected?: boolean; label: string}) {
 
 export default function Dashboard() {
 	const {exit} = useApp();
-	const [activeTool, setActiveTool] = useState<string | null>(null);
+	const [resume] = useState(() => consumeResume());
+	const [activeTool, setActiveTool] = useState<string | null>(
+		resume?.activeTool ?? null,
+	);
 	const availableTools = tools.filter(tool => tool.available);
 	const [highlightedId, setHighlightedId] = useState(
 		availableTools[0]?.id ?? '',
@@ -63,6 +68,22 @@ export default function Dashboard() {
 			<Box flexDirection="column">
 				<Banner />
 				<PortViewerApp onBack={() => setActiveTool(null)} />
+			</Box>
+		);
+	}
+
+	if (activeTool === 'script-runner') {
+		return (
+			<Box flexDirection="column">
+				<Banner />
+				<ScriptRunnerApp
+					onBack={() => setActiveTool(null)}
+					initialResults={
+						resume?.activeTool === 'script-runner'
+							? resume.scriptRunnerResults
+							: undefined
+					}
+				/>
 			</Box>
 		);
 	}

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import React from 'react';
-import {Box, render} from 'ink';
+import React, {useState} from 'react';
+import {Box, render, type Instance} from 'ink';
 import meow from 'meow';
 import ora from 'ora';
-import App from './app';
+import {consumeResume, mountApp, setStandaloneMount} from './lib/ui-session';
 import {runVsixDownload} from './tools/vsix/download';
 import {promptInstallVsix} from './tools/vsix/prompt-install';
 import {
@@ -13,6 +13,8 @@ import {
 } from './tools/vsix/print-summary';
 import VsixApp from './tools/vsix/VsixApp';
 import SyncApp from './tools/sync/SyncApp';
+import PortViewerApp from './tools/port/PortViewerApp';
+import ScriptRunnerApp from './tools/script-runner/ScriptRunnerApp';
 import {Banner} from './components/Banner';
 import {checkForUpdates} from './update-check';
 
@@ -20,6 +22,8 @@ const cli = meow(
 	`
 	Usage
 	  $ vkit
+	  $ vkit port
+	  $ vkit run
 	  $ vkit vsix <extension>
 	  $ vkit vsix
 	  $ vkit vsix-sync
@@ -30,6 +34,8 @@ const cli = meow(
 
 	Examples
 	  $ vkit
+	  $ vkit port
+	  $ vkit run
 	  $ vkit vsix ms-python.python
 	  $ vkit vsix ms-python.python --version 2024.20.0 --out ./extensions/
 	  $ vkit vsix-sync
@@ -50,6 +56,39 @@ const cli = meow(
 checkForUpdates();
 
 const [command, extension] = cli.input;
+
+function mountPortViewer(): Instance {
+	return render(
+		<Box flexDirection="column">
+			<Banner />
+			<PortViewerApp
+				onBack={() => {
+					process.exit(0);
+				}}
+			/>
+		</Box>,
+	);
+}
+
+function StandaloneScriptRunner() {
+	const [resume] = useState(() => consumeResume());
+
+	return (
+		<Box flexDirection="column">
+			<Banner />
+			<ScriptRunnerApp
+				onBack={() => {
+					process.exit(0);
+				}}
+				initialResults={resume?.scriptRunnerResults}
+			/>
+		</Box>
+	);
+}
+
+function mountScriptRunner(): Instance {
+	return render(<StandaloneScriptRunner />);
+}
 
 async function runScriptMode() {
 	if (!extension) {
@@ -115,9 +154,15 @@ if (command === 'vsix') {
 			/>
 		</Box>,
 	);
+} else if (command === 'port') {
+	setStandaloneMount(mountPortViewer);
+	mountPortViewer();
+} else if (command === 'run') {
+	setStandaloneMount(mountScriptRunner);
+	mountScriptRunner();
 } else if (command) {
 	console.error(`Unknown command: ${command}`);
 	process.exit(1);
 } else {
-	render(<App />);
+	mountApp();
 }

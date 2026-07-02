@@ -1,4 +1,4 @@
-import {useState, type Dispatch, type SetStateAction} from 'react';
+import {useEffect, useState, type Dispatch, type SetStateAction} from 'react';
 import {useInput} from 'ink';
 
 type Options<T, K extends string> = {
@@ -49,6 +49,15 @@ export function useMultiSelectList<T, K extends string = string>({
 
 	const total = items.length;
 	const windowSize = visibleCount ?? total;
+
+	useEffect(() => {
+		setCursorIndex(previous =>
+			total === 0 ? 0 : Math.min(previous, total - 1),
+		);
+		setScrollOffset(previous =>
+			Math.min(previous, Math.max(0, total - windowSize)),
+		);
+	}, [total, windowSize]);
 
 	function moveCursor(delta: number) {
 		if (total === 0) {
